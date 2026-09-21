@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package pqc;
+
+service PqcService {
+  rpc SubmitObservation(ObservationRequest) returns (SubmitResponse);
+  rpc SubmitDeviceResult(DeviceResultRequest) returns (SubmitResponse);
+  rpc HealthCheck(HealthRequest) returns (HealthResponse);
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+  string status = 1;
+  string service = 2;
+}
+
+message ObservationRequest {
+  string sensor_id = 1;
+  string device_id = 2;
+  string asset_id = 3;
+  string observation_type = 4;
+  string payload_json = 5;
+  string observed_at = 6;
+}
+
+message DeviceResultRequest {
+  string sensor_id = 1;
+  string device_id = 2;
+  string result_type = 3;
+  string payload_json = 4;
+  string collected_at = 5;
+}
+
+message SubmitResponse {
+  bool accepted = 1;
+  string message = 2;
+}

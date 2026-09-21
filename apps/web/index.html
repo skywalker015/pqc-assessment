@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PQC Readiness Dashboard</title>
+    <style>
+      :root {
+        --bg: #0b1220;
+        --panel: #131d2d;
+        --panel-alt: #1b2a3a;
+        --text: #e5eefb;
+        --muted: #9eb3c9;
+        --accent: #4cc9f0;
+        --good: #2dd4bf;
+        --warn: #f59e0b;
+        --bad: #ef4444;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 2rem;
+      }
+      .badge {
+        background: rgba(76, 201, 240, 0.1);
+        border: 1px solid rgba(76, 201, 240, 0.4);
+        color: var(--accent);
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 0.9rem;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 14px;
+        padding: 18px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+      }
+      .label {
+        color: var(--muted);
+        font-size: 0.85rem;
+        margin-bottom: 10px;
+      }
+      .value {
+        font-size: 2rem;
+        font-weight: 700;
+      }
+      .good { color: var(--good); }
+      .warn { color: var(--warn); }
+      .bad { color: var(--bad); }
+      .insights {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr;
+        gap: 16px;
+      }
+      .panel {
+        background: var(--panel);
+        border-radius: 14px;
+        padding: 18px;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      li {
+        padding: 12px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        color: var(--muted);
+      }
+      li:last-child { border-bottom: none; }
+      .small {
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>PQC Readiness Dashboard</h1>
+        <span class="badge">Environment Overview</span>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="label">Overall readiness</div>
+          <div class="value" id="overall-score">--</div>
+        </div>
+        <div class="card">
+          <div class="label">Assets discovered</div>
+          <div class="value" id="assets-detected">--</div>
+        </div>
+        <div class="card">
+          <div class="label">Sensors online</div>
+          <div class="value" id="sensors-online">--</div>
+        </div>
+        <div class="card">
+          <div class="label">High-risk findings</div>
+          <div class="value bad" id="high-risk">--</div>
+        </div>
+        <div class="card">
+          <div class="label">Observations collected</div>
+          <div class="value" id="observations-collected">--</div>
+        </div>
+      </div>
+
+      <div class="insights">
+        <div class="panel">
+          <h3>Recommended actions</h3>
+          <ul id="recommended-actions">
+            <li>Loading recommendations...</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>Sensor status</h3>
+          <ul id="sensor-status">
+            <li>Loading sensor summary...</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      async function loadDashboard() {
+        const response = await fetch('/api/dashboard');
+        const data = await response.json();
+
+        document.getElementById('overall-score').textContent = `${data.overall_score}%`;
+        document.getElementById('overall-score').className = 'value ' + (
+          data.overall_score >= 85 ? 'good' : data.overall_score >= 60 ? 'warn' : 'bad'
+        );
+
+        document.getElementById('assets-detected').textContent = data.assets_detected;
+        document.getElementById('sensors-online').textContent = data.sensors_online;
+        document.getElementById('high-risk').textContent = data.high_risk_count;
+        document.getElementById('observations-collected').textContent = data.observations_collected;
+
+        const actionsNode = document.getElementById('recommended-actions');
+        actionsNode.innerHTML = data.recommended_actions.map(item => `<li>${item}</li>`).join('');
+
+        const sensorNode = document.getElementById('sensor-status');
+        sensorNode.innerHTML = data.sensor_status.map(item => `<li>${item}</li>`).join('');
+      }
+
+      loadDashboard();
+    </script>
+  </body>
+</html>

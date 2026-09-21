@@ -1,0 +1,9 @@
+[package]
+name = "network-sensor"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pqc-backend = { path = "../../apps/backend" }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+prost = "0.13"

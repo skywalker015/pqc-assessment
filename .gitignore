@@ -1,0 +1,15 @@
+# Rust build output
+/target/
+
+# Editor settings
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+
+# Backup files
+*.rs.bk
+
+# Local database files
+/data/*.db

@@ -1,0 +1,17 @@
+[workspace]
+members = [
+  "libs/common",
+  "apps/backend",
+  "sensors/network",
+  "sensors/device",
+  "sensors/remote",
+  "sensors/discovery"
+]
+resolver = "2"
+
+[package]
+name = "pqc-assessment"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
