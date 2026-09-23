@@ -119,6 +119,8 @@ The frontend is the primary operational interface for administrators and operato
 
 ### Functional capabilities
 - Show overall readiness score and status
+- Show counts and lists of PQC-ready, partially ready, not PQC-ready, and unknown assets
+- Show mitigation progress, newly remediated assets, regressions, and stale evidence
 - Display discovered assets and services
 - List active sensors and last seen timestamps
 - Upload CSV from supervised device agents
@@ -128,6 +130,20 @@ The frontend is the primary operational interface for administrators and operato
 
 ### Technology direction
 - Rust web frontend can be implemented as a server-rendered app or a JS-heavy SPA served from a Rust backend.
+
+### Assessment classification contract
+
+The backend must return these fields for each assessed asset:
+
+- `scope_state`
+- `readiness_state`
+- `evidence_confidence`
+- `last_evidence_at`
+- `failed_rule_ids`
+- `mitigation_status`
+- `previous_readiness_state`
+
+The backend must not collapse missing evidence into a passing or failing result. An asset with insufficient evidence is `unknown` until enough evidence is collected.
 - For early phases, a simpler approach is a Rust backend serving HTML templates with progressive enhancement or a minimal JavaScript frontend.
 - This keeps the stack manageable while preserving modularity.
 
@@ -145,15 +161,16 @@ Folder: `apps/backend/`
 ### Responsibility
 The backend is the orchestrator and system of record. It accepts data from sensors, stores normalized results, runs assessment logic, and produces operational reports.
 
-For real-time sensor telemetry, gRPC is preferred because it provides strongly typed contracts, efficient binary encoding, and clear service interfaces for device and network agents. REST remains useful for the web frontend and CSV uploads.
+For real-time sensor telemetry, REST over HTTPS (HTTP/1.1) is used as the primary robust transport to ensure compatibility with corporate proxies and firewalls. Sensors authenticate with scoped API tokens or API keys sent in the `Authorization` header. Tokens must be stored securely, expire, rotate, and be revocable. gRPC is available as an optional secondary interface for low-latency network segments.
 
 ### Core modules
-- API layer
-- gRPC service layer
+- API layer (REST primary, gRPC secondary)
+- Agent Management & Configuration
 - Data ingestion layer
 - Repository layer
-- Assessment engine
+- Dynamic Assessment engine
 - Audit/logging subsystem
+- Data Retention & Pruning subsystem
 - Scheduling subsystem
 - File upload processor
 
@@ -302,8 +319,8 @@ struct Assessment {
 }
 ```
 
-### Rule engine
-Rules are implemented as reusable predicates over normalized data. Examples:
+### Configurable Rule Engine
+Rules are implemented using an embedded dynamic scripting or policy engine (e.g., Rego/OPA, Rhai, or Lua) to allow updates to PQC readiness logic without recompiling the backend. Examples of dynamic rule evaluations:
 - TLS 1.0 or 1.1 is still enabled
 - OpenSSH version is unsupported
 - Legacy SHA-1 certificates or weak RSA keys are present
@@ -648,6 +665,9 @@ Backend -> Assessment Engine: compute risk
 
 ## 8. Security design
 
+### Compliance
+- **OWASP ASVS:** The platform must comply with the OWASP Application Security Verification Standard (ASVS) at a minimum of Level 2. Level 3 controls must be applied where applicable, particularly for cryptographic asset management, session handling, and agent authentication.
+
 ### Identity and access
 - All admin operations require authenticated sessions
 - API endpoints should support role-based access control
@@ -659,9 +679,9 @@ Backend -> Assessment Engine: compute risk
 - Redact secrets in logs and reports
 
 ### Network protections
-- Use TLS for all backend communications
-- Validate sensor identities before accepting uploads or telemetry
-- Support mTLS for higher security environments
+- Use PQC-ready encrypted transport (e.g., TLS 1.3 with ML-KEM/Kyber key exchange and ML-DSA/Dilithium certificates) for all backend communications
+- Enforce scoped API-token or API-key authentication for all sensor telemetry uploads
+- Implement secure enrollment, expiration, rotation, and revocation workflows for sensor tokens
 
 ### Auditability
 Every action should be captured in `audit_logs` with enough detail to reconstruct the event.
@@ -670,10 +690,11 @@ Every action should be captured in `audit_logs` with enough detail to reconstruc
 
 ## 9. Observability and operations
 
-### Logging
+### Logging & Alerting
 - Structured logs for API requests, sensor activity, and assessment runs
 - Log levels: debug, info, warn, error
 - Correlation ID for cross-component tracing
+- **Alerting Strategy:** Alerts for critical events will be sent via email or displayed as dashboard alerts.
 
 ### Metrics
 - Sensor success/failure rate
@@ -682,10 +703,22 @@ Every action should be captured in `audit_logs` with enough detail to reconstruc
 - Assessment scores over time
 - Upload and parsing failures
 
-### Health checks
-- Backend health endpoint
-- Sensor heartbeat tracking
-- Database connectivity checks
+### Health Checks & Incident Response
+- **Agent Health Checks:** The backend will perform sensor/agent health checks every 30 minutes by default (customizable).
+- **Incident Response for Failed Sensors:** If an agent fails its health check or disconnects, notifications will be sent via email and as a dashboard alert.
+- Backend health endpoint and database connectivity checks.
+
+### Data Retention & Pruning
+- Aggregate repetitive observations (e.g., summarizing flow volume) rather than storing all raw network events.
+- **Log Retention Rules:** A scheduled retention job purges telemetry and logs older than 90 days by default (this threshold is customizable).
+
+### Backup and Recovery
+- Backups can be scheduled via the application menu.
+- Backups will be stored in a user-determined backup folder.
+- All backups will be password-protected (encrypted), with the password set by the user.
+
+### Concurrency Framework
+- Standardize on the **Tokio** asynchronous runtime across the workspace to handle thousands of concurrent sensor API connections and I/O-heavy remote agent scanning without blocking threads
 
 ---
 

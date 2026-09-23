@@ -12,6 +12,8 @@ The platform is designed to support:
 - SQLite for local/default use and PostgreSQL for enterprise upgrade
 - Central orchestration and reporting
 
+The product outcome is an evidence-backed enterprise posture summary: identify assets that already demonstrate PQC readiness, assets that do not, assets with insufficient evidence, and the progress of mitigation over time. The platform assesses and reports this posture; it does not implement PQC on the assessed assets.
+
 ---
 
 ## 2. High-level architecture
@@ -107,8 +109,9 @@ Responsibilities:
 - Run assessment logic against best-practice PQC rules
 - Produce summary and risk reports
 - Record user actions and agent activity in logs
+- Manage agent lifecycle (configuration updates, binary upgrades, health polling)
 
-The backend acts as the orchestrator and single source of truth for the application. For agent-to-backend communication, gRPC is the preferred protocol for structured telemetry, while the web UI can still consume JSON REST endpoints and upload files over HTTP.
+The backend acts as the orchestrator and single source of truth for the application. For agent-to-backend communication, REST over HTTPS (HTTP/1.1) is used as the primary protocol to ensure compatibility with corporate proxies, with gRPC available as an optional secondary protocol. All data in transit must be secured with TLS 1.3 and modern approved algorithms. Sensors authenticate with scoped API tokens or API keys.
 
 ### 3.3 Shared library
 
@@ -124,7 +127,7 @@ Responsibilities:
   - Assessment
 - Parsing of CSV and JSON payloads
 - DB repository interfaces
-- Rule engine for PQC readiness checks
+- Configurable rule engine (e.g., Rego/OPA or Rhai) for dynamic PQC readiness checks
 - Report serialization helpers
 - Common crypto fingerprinting logic
 
@@ -360,10 +363,14 @@ Examples of assessment categories:
 - Public key distribution and trust posture
 
 Assessment outputs:
-- Ready / At Risk / Needs Attention / Unknown
+- PQC-ready / Partially ready / Not PQC-ready / Unknown
 - Risk score
 - Evidence references
 - Suggested remediation
+- Evidence confidence and assessment timestamp
+- Mitigation status and change from the previous assessment
+
+Only assets explicitly included in the configured assessment scope contribute to the enterprise readiness summary. Excluded and pending-review assets remain visible for inventory management but are not counted in the score.
 
 The library should provide a rule catalog with:
 - Rule ID
@@ -398,7 +405,9 @@ This is important both for compliance and for operational troubleshooting.
 
 ## 10. Security and privacy requirements
 
-- Use encrypted transport for agent-to-backend communication
+- **OWASP ASVS Compliance:** The platform must comply with the OWASP Application Security Verification Standard (ASVS) minimum Level 2, and enforce Level 3 controls where applicable (especially regarding cryptography and authentication).
+- Use PQC-ready encrypted transport (e.g., TLS 1.3 with ML-KEM/Kyber key exchange and ML-DSA/Dilithium certificates) for all agent-to-backend communication
+- Enforce strict sensor authentication via scoped API-token enrollment, expiration, rotation, and revocation
 - Minimize credential storage; prefer temporary secret brokers or secure vaults
 - Restrict root-based operations to the supervised local mode
 - Redact sensitive values in user-facing logs
@@ -407,7 +416,19 @@ This is important both for compliance and for operational troubleshooting.
 
 ---
 
-## 11. Suggested implementation strategy
+## 11. Concurrency and Data Management
+
+### 11.1 Concurrency Framework
+To handle many concurrent connections from sensors and perform heavy network I/O efficiently, the backend and sensors will standardize on the **Tokio** asynchronous runtime in Rust. This ensures consistent ecosystem compatibility across the monorepo.
+
+### 11.2 Data Retention Strategy
+Passive network sensors generate massive volumes of observations. To prevent database bloat:
+- **Aggregation:** Observations are aggregated in the backend (e.g., summarizing total connections between assets) instead of storing every raw event.
+- **Log Retention Rules:** A scheduled retention job automatically archives or deletes raw telemetry older than 90 days by default (customizable by the user), retaining only aggregated compliance violations and asset state.
+
+---
+
+## 12. Suggested implementation strategy
 
 ### Phase 1: Foundation
 - Set up monorepo structure
@@ -438,7 +459,7 @@ This is important both for compliance and for operational troubleshooting.
 
 ---
 
-## 12. Recommended folder layout for active work
+## 13. Recommended folder layout for active work
 
 ```text
 pqc-assessment/
@@ -477,7 +498,7 @@ pqc-assessment/
 
 ---
 
-## 13. Final recommendation
+## 14. Final recommendation
 
 This should be implemented as a modular, multi-component system centered around a backend orchestrator and a shared library. The sensor components should remain independent and specialized. The database should start with SQLite but be abstracted so PostgreSQL can be introduced later without rewriting the domain logic.
 

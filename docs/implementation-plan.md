@@ -1,55 +1,61 @@
 # PQC Readiness Platform: Implementation Plan
 
-This document outlines the step-by-step implementation plan for the PQC Readiness Assessment platform, based on the architecture and detailed design documents. The project will be developed using Rust in a monorepo structure, utilizing SQLite as the default database with a clear migration path to PostgreSQL.
+This document outlines the step-by-step implementation plan for the PQC Readiness Assessment platform, based on the architecture and detailed design documents. The project will be developed using Rust in a monorepo structure (standardized on the **Tokio** async runtime), utilizing SQLite as the default database with a clear migration path to PostgreSQL.
 
-## Phase 1: Foundation
-**Goal:** Establish the core workspace, shared data models, database repository layer, and the basic backend/frontend shell.
+The implementation target is an assessment and mitigation-progress product. It must classify in-scope enterprise assets by PQC posture and report progress; it must not implement or deploy PQC algorithms on customer assets.
+
+## Phase 1: Foundation & Security Core
+**Goal:** Establish the core workspace, shared data models, database repository layer, and the basic backend/frontend shell, with a strong emphasis on PQC-ready security.
 
 - **Tasks:**
-  - Initialize the Rust workspace (`Cargo.toml`) and directory structure (`apps/`, `libs/`, `sensors/`, `devices/`).
-  - Implement the shared domain models in `libs/common/` (Asset, Service, DeviceConfigEvidence, Assessment).
-  - Set up the SQLite database schema and repository interfaces in `libs/common/db/`.
-  - Scaffold the backend API (`apps/backend/`) with health check endpoints.
+  - Initialize the Rust workspace (`Cargo.toml`) and directory structure. Standardize on the **Tokio** async framework.
+  - Implement the shared domain models in `libs/common/`.
+  - Set up the SQLite database schema and repository interfaces, including a **Data Retention & Pruning** subsystem for handling high-volume telemetry.
+  - Implement scoped API-token authentication for sensors, including secure enrollment, expiration, rotation, and revocation, while using TLS 1.3 for transport.
+  - Scaffold the backend API (`apps/backend/`) using REST over HTTPS (HTTP/1.1) to ensure proxy compatibility, with gRPC as an optional secondary protocol.
   - Build the basic web dashboard shell (`apps/web/`).
-  - Create parsers for JSON and CSV data ingestion.
+  - Define readiness, scope, evidence-confidence, and mitigation-status enums in `libs/common/`.
 
 ## Phase 2: Sensor Core & Passive Observation
 **Goal:** Develop the network and discovery sensors to safely identify assets and intercept TLS/SSH traffic metadata.
 
 - **Tasks:**
-  - Implement the **Network Sensor** (`sensors/network/`) to passively capture packets and analyze TLS handshakes and SSH banners.
+  - Implement the **Network Sensor** (`sensors/network/`) to passively capture packets.
   - Implement the **Discovery Sensor** (`sensors/discovery/`) to perform ping sweeps and non-intrusive Nmap scans.
-  - Build backend API endpoints to receive telemetry and observation data from these sensors.
-  - Map incoming data to `Observation`, `Service`, and `AssetCandidate` domain objects and store them in the database.
+  - Build backend REST API endpoints to receive telemetry. Implement data aggregation logic to prevent database bloat from high-frequency network observations.
+  - Map incoming data to `Observation` and `Service` objects.
+  - Ensure discovered assets remain pending scope review until explicitly included or excluded.
 
-## Phase 3: Device & Remote Agents
-**Goal:** Enable local and remote collection of cryptographic configuration evidence (e.g., OpenSSL/OpenSSH versions, keys, TLS policies).
-
-- **Tasks:**
-  - Implement the **Device Agent** (`sensors/device/`) with a supervised mode to export CSV files containing local config evidence.
-  - Add unsupervised mode to the Device Agent to push JSON payloads directly to the backend API via scheduled tasks.
-  - Implement the **Remote Agent** (`sensors/remote/`) to perform credentialed SSH logins and remote evidence collection.
-  - Create the CSV upload pipeline in the web frontend and the corresponding processing logic in the backend.
-
-## Phase 4: Assessment & Reporting
-**Goal:** Evaluate normalized evidence against PQC readiness rules, score the environment, and present the results.
+## Phase 3: Device Agents & Management
+**Goal:** Enable local collection of cryptographic configuration evidence and establish central agent management.
 
 - **Tasks:**
-  - Build the Rule Engine in `libs/common/rules/pqc_rules.rs` to evaluate PQC compliance (e.g., legacy crypto configs, key strengths).
-  - Implement the Assessment Engine in the backend to trigger evaluations on new data and generate risk scores and findings.
+  - Implement the **Agent Management** subsystem in the backend to push configuration updates, polling intervals, and binary upgrades to supervised/unsupervised agents.
+  - Implement the **Device Agent** (`sensors/device/`) to poll the backend for updates, and securely push JSON payloads using HTTPS and scoped sensor API tokens.
+  - Implement the CSV export/upload pipeline as a fallback supervised mode.
+  - Implement the **Remote Agent** (`sensors/remote/`) to perform credentialed SSH logins.
+
+## Phase 4: Dynamic Assessment & Reporting
+**Goal:** Evaluate normalized evidence against dynamic PQC readiness rules, score the environment, and present the results.
+
+- **Tasks:**
+  - Integrate a **Configurable Rule Engine** (e.g., Rego/OPA or Rhai) in `libs/common/rules/` so PQC assessment rules can be updated dynamically without recompiling the backend.
+  - Implement the Assessment Engine to trigger evaluations on new data and generate risk scores.
   - Develop reporting modules to summarize findings and suggest remediations.
-  - Build web dashboard widgets to visualize the overall readiness score, assessment details, and evidence trails.
+  - Implement per-asset classification as PQC-ready, partially ready, not PQC-ready, or unknown.
+  - Implement comparison with the previous assessment to report newly remediated assets, open gaps, and regressions.
+  - Build web dashboard widgets to visualize the readiness score and rule violations.
 
 ## Phase 5: Hardening & Enterprise Readiness
 **Goal:** Secure the platform, implement robust logging, and ensure it can scale to enterprise deployments.
 
 - **Tasks:**
-  - Implement Role-Based Access Control (RBAC) and authentication for the web UI and API.
-  - Secure sensor-to-backend communications (TLS/mTLS) and implement strict secret management for remote credentials.
-  - Build the centralized audit logging subsystem to track user actions, sensor runs, and assessment generations.
+  - Implement Role-Based Access Control (RBAC) and authentication for the web UI.
+  - Build the centralized audit logging subsystem to track user actions and sensor runs.
   - Prepare and test the database migration path to support PostgreSQL for enterprise deployments.
-  - Finalize end-to-end testing, including integration tests for sensor ingestion and workflow simulations.
+  - Finalize end-to-end testing, ensuring the pruning jobs successfully maintain database performance and all PQC-ready encryption tunnels hold under load.
+  - Verify the explicit success criteria: an operator can identify assets requiring remediation, assets already demonstrating readiness, and mitigation progress across assessment periods.
 
 ## Deployment Strategy
-- **Initial Pilot:** Deploy locally using SQLite, with backend and web UI on the same host, gathering data via supervised CSV uploads and passive network sensors.
-- **Enterprise Rollout:** Transition to PostgreSQL, distribute sensors across network segments, and utilize remote/unsupervised device agents with central orchestration and audit logging.
+- **Initial Pilot:** Deploy locally using SQLite, with backend and web UI on the same host. Sensors communicate via REST over HTTPS using scoped API tokens.
+- **Enterprise Rollout:** Transition to PostgreSQL, distribute sensors across network segments, utilize the Agent Management system for fleets of device agents, and rely on the data retention policies to scale efficiently.
