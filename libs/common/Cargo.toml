@@ -11,6 +11,5 @@ path = "src/lib.rs"
 chrono = { version = "0.4", features = ["serde"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
-sqlx = { workspace = true }
 tokio = { workspace = true }
 uuid = { version = "1.10.0", features = ["v4", "serde"] }

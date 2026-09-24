@@ -21,6 +21,14 @@ async fn main() {
             .to_string(),
     };
 
+    let token = std::env::var("PQC_SENSOR_API_TOKEN")
+        .expect("PQC_SENSOR_API_TOKEN must be set");
+    let mut request = tonic::Request::new(request);
+    request.metadata_mut().insert(
+        "authorization",
+        format!("Bearer {token}").parse().expect("invalid auth metadata"),
+    );
+
     let response = client
         .submit_device_result(request)
         .await

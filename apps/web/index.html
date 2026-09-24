@@ -1,173 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PQC Readiness Dashboard</title>
-    <style>
-      :root {
-        --bg: #0b1220;
-        --panel: #131d2d;
-        --panel-alt: #1b2a3a;
-        --text: #e5eefb;
-        --muted: #9eb3c9;
-        --accent: #4cc9f0;
-        --good: #2dd4bf;
-        --warn: #f59e0b;
-        --bad: #ef4444;
-      }
-
-      * { box-sizing: border-box; }
-      body {
-        margin: 0;
-        font-family: Arial, sans-serif;
-        background: var(--bg);
-        color: var(--text);
-      }
-      .container {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: 24px;
-      }
-      .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
-      }
-      .header h1 {
-        margin: 0;
-        font-size: 2rem;
-      }
-      .badge {
-        background: rgba(76, 201, 240, 0.1);
-        border: 1px solid rgba(76, 201, 240, 0.4);
-        color: var(--accent);
-        padding: 8px 12px;
-        border-radius: 999px;
-        font-size: 0.9rem;
-      }
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 16px;
-        margin-bottom: 24px;
-      }
-      .card {
-        background: var(--panel);
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 14px;
-        padding: 18px;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-      }
-      .label {
-        color: var(--muted);
-        font-size: 0.85rem;
-        margin-bottom: 10px;
-      }
-      .value {
-        font-size: 2rem;
-        font-weight: 700;
-      }
-      .good { color: var(--good); }
-      .warn { color: var(--warn); }
-      .bad { color: var(--bad); }
-      .insights {
-        display: grid;
-        grid-template-columns: 1.4fr 1fr;
-        gap: 16px;
-      }
-      .panel {
-        background: var(--panel);
-        border-radius: 14px;
-        padding: 18px;
-      }
-      ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-      li {
-        padding: 12px 0;
-        border-bottom: 1px solid rgba(255,255,255,0.08);
-        color: var(--muted);
-      }
-      li:last-child { border-bottom: none; }
-      .small {
-        font-size: 0.8rem;
-        color: var(--muted);
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="header">
-        <h1>PQC Readiness Dashboard</h1>
-        <span class="badge">Environment Overview</span>
-      </div>
-
-      <div class="grid">
-        <div class="card">
-          <div class="label">Overall readiness</div>
-          <div class="value" id="overall-score">--</div>
-        </div>
-        <div class="card">
-          <div class="label">Assets discovered</div>
-          <div class="value" id="assets-detected">--</div>
-        </div>
-        <div class="card">
-          <div class="label">Sensors online</div>
-          <div class="value" id="sensors-online">--</div>
-        </div>
-        <div class="card">
-          <div class="label">High-risk findings</div>
-          <div class="value bad" id="high-risk">--</div>
-        </div>
-        <div class="card">
-          <div class="label">Observations collected</div>
-          <div class="value" id="observations-collected">--</div>
-        </div>
-      </div>
-
-      <div class="insights">
-        <div class="panel">
-          <h3>Recommended actions</h3>
-          <ul id="recommended-actions">
-            <li>Loading recommendations...</li>
-          </ul>
-        </div>
-        <div class="panel">
-          <h3>Sensor status</h3>
-          <ul id="sensor-status">
-            <li>Loading sensor summary...</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
-    <script>
-      async function loadDashboard() {
-        const response = await fetch('/api/dashboard');
-        const data = await response.json();
-
-        document.getElementById('overall-score').textContent = `${data.overall_score}%`;
-        document.getElementById('overall-score').className = 'value ' + (
-          data.overall_score >= 85 ? 'good' : data.overall_score >= 60 ? 'warn' : 'bad'
-        );
-
-        document.getElementById('assets-detected').textContent = data.assets_detected;
-        document.getElementById('sensors-online').textContent = data.sensors_online;
-        document.getElementById('high-risk').textContent = data.high_risk_count;
-        document.getElementById('observations-collected').textContent = data.observations_collected;
-
-        const actionsNode = document.getElementById('recommended-actions');
-        actionsNode.innerHTML = data.recommended_actions.map(item => `<li>${item}</li>`).join('');
-
-        const sensorNode = document.getElementById('sensor-status');
-        sensorNode.innerHTML = data.sensor_status.map(item => `<li>${item}</li>`).join('');
-      }
-
-      loadDashboard();
-    </script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PQC Readiness</title>
+  <style>
+    :root { color-scheme: dark; --bg:#090909; --sidebar:#0c0c0d; --panel:#151516; --panel-alt:#101011; --text:#f1f1f1; --muted:#858589; --accent:#f2632c; --good:#a7c47a; --warn:#e5a84b; --bad:#e46758; --line:#28282a; }
+    [data-theme="light"] { color-scheme:light; --bg:#f4f3f1; --sidebar:#ebe9e5; --panel:#fff; --panel-alt:#f0efed; --text:#202022; --muted:#6c6b70; --line:#d7d4cf; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Arial,Helvetica,sans-serif; background:var(--bg); color:var(--text); }
+    button,input,select { font:inherit; }
+    button { cursor:pointer; border:1px solid var(--line); border-radius:5px; padding:10px 14px; background:var(--panel-alt); color:var(--text); }
+    .app-shell { display:grid; grid-template-columns:272px minmax(0,1fr); min-height:100vh; transition:grid-template-columns 180ms ease; }
+    .app-shell.sidebar-collapsed { grid-template-columns:72px minmax(0,1fr); }
+    .sidebar { padding:18px 0; background:var(--sidebar); border-right:1px solid var(--line); }
+    .brand { display:flex; align-items:center; gap:9px; min-height:40px; margin:0 18px 30px; font-weight:700; }
+    .brand-mark { display:grid; place-items:center; width:25px; height:25px; border-radius:2px; background:var(--accent); color:#160b06; font-weight:800; }
+    .brand-label { white-space:nowrap; }
+    .sidebar-toggle { margin-left:auto; border:0; background:transparent; padding:6px; }
+    .tree { display:grid; gap:4px; }
+    .tree::before { content:"NETWORK"; padding:0 18px 9px; color:var(--muted); font-size:10px; font-weight:700; letter-spacing:2px; }
+    .tree-folder,.tree-item { width:100%; border:0; border-radius:0; padding:11px 18px; background:transparent; color:var(--muted); text-align:left; }
+    .tree-folder:hover,.tree-item:hover,.tree-item.active { background:rgba(242,99,44,.13); color:var(--text); }
+    .tree-folder { display:flex; align-items:center; gap:8px; color:var(--accent); }
+    .tree-folder::before { content:">"; } .tree-folder.expanded::before { content:"v"; }
+    .tree-children { display:grid; gap:4px; } .tree-children[hidden],.view[hidden],.token-result[hidden] { display:none; }
+    .tree-item::before { content:"o"; display:inline-block; width:18px; color:var(--muted); } .tree-item.active::before { content:"*"; color:var(--accent); }
+    .sidebar-collapsed .brand-label,.sidebar-collapsed .tree-folder span,.sidebar-collapsed .tree-item span { display:none; }
+    .sidebar-collapsed .brand { justify-content:center; } .sidebar-collapsed .sidebar-toggle { margin:0; }
+    .theme-control { margin:24px 18px 0; } .theme-control label { display:block; margin-bottom:8px; color:var(--muted); font-size:10px; font-weight:700; letter-spacing:2px; }
+    .workspace { min-width:0; padding:42px 52px; } .content { max-width:1100px; margin:0 auto; }
+    .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:34px; padding-bottom:20px; border-bottom:1px solid var(--line); }
+    .header h1 { margin:0; font-size:2.35rem; } .badge { color:var(--accent); font-size:.68rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:26px; }
+    .card,.panel { background:var(--panel); border:1px solid var(--line); border-radius:5px; } .card { padding:22px; } .panel { padding:22px; } .panel + .panel { margin-top:16px; }
+    .panel h2,.panel h3 { margin-top:0; } .label { color:var(--muted); font-size:.7rem; letter-spacing:1.5px; margin-bottom:10px; text-transform:uppercase; } .value { font-size:1.8rem; font-weight:700; }
+    .good { color:var(--good); } .warn { color:var(--warn); } .bad { color:var(--bad); }
+    .insights { display:grid; grid-template-columns:1.4fr 1fr; gap:16px; } ul { list-style:none; padding:0; margin:0; } li { padding:12px 0; border-bottom:1px solid var(--line); color:var(--muted); } li:last-child { border-bottom:0; }
+    .small { color:var(--muted); font-size:.8rem; } .sensor-row { display:grid; grid-template-columns:1.3fr 1fr .8fr 1fr auto; gap:12px; align-items:center; padding:14px 0; border-bottom:1px solid var(--line); } .sensor-row:last-child { border-bottom:0; }
+    .status { display:inline-block; width:fit-content; padding:4px 8px; border-radius:999px; font-size:.78rem; text-transform:capitalize; } .status.online { color:var(--good); background:rgba(167,196,122,.12); } .status.offline { color:var(--muted); background:rgba(128,128,128,.12); }
+    .form { display:grid; gap:10px; margin-top:18px; } input,select { width:100%; border:1px solid var(--line); border-radius:5px; padding:10px; background:var(--panel-alt); color:var(--text); } button.primary { background:var(--accent); border-color:var(--accent); color:#160b06; font-weight:700; } button.danger { color:var(--bad); border-color:var(--bad); }
+    .token-result { display:grid; gap:8px; margin-top:16px; padding:12px; border:1px solid var(--good); border-radius:5px; background:rgba(167,196,122,.08); }
+    @media (max-width:760px) { .app-shell { grid-template-columns:64px minmax(0,1fr); } .sidebar { padding-top:12px; } .brand { margin-left:14px; margin-right:14px; } .brand-label,.tree-folder span,.tree-item span { display:none; } .workspace { padding:24px 18px; } .header h1 { font-size:1.7rem; } .insights { grid-template-columns:1fr; } .sensor-row { grid-template-columns:1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Application navigation">
+      <div class="brand"><span class="brand-mark">P</span><span class="brand-label">PQC Readiness</span><button class="sidebar-toggle" id="sidebar-toggle" aria-label="Collapse sidebar">&lt;</button></div>
+      <div class="tree"><button class="tree-folder expanded" id="tree-toggle" aria-expanded="true">Workspace</button><div class="tree-children" id="tree-children"><button class="tree-item active" data-view="dashboard-view"><span>Overview</span></button><button class="tree-item" data-view="sensors-view"><span>Sensors</span></button></div></div>
+      <div class="theme-control"><label for="theme-select">Appearance</label><select id="theme-select"><option value="system">System</option><option value="dark">Dark</option><option value="light">Light</option></select></div>
+    </aside>
+    <section class="workspace"><div class="content">
+      <div class="header"><h1>PQC Readiness Dashboard</h1><span class="badge">Environment Overview</span></div>
+      <main id="dashboard-view" class="view"><div class="grid"><div class="card"><div class="label">Overall readiness</div><div class="value" id="overall-score">--</div></div><div class="card"><div class="label">Assets discovered</div><div class="value" id="assets-detected">--</div></div><div class="card"><div class="label">Sensors online</div><div class="value" id="sensors-online">--</div></div><div class="card"><div class="label">High-risk findings</div><div class="value bad" id="high-risk">--</div></div><div class="card"><div class="label">Observations collected</div><div class="value" id="observations-collected">--</div></div></div><div class="insights"><div class="panel"><h3>Recommended actions</h3><ul id="recommended-actions"><li>Loading recommendations...</li></ul></div><div class="panel"><h3>Sensor status</h3><ul id="sensor-status"><li>Loading sensor summary...</li></ul></div></div></main>
+      <section class="panel telemetry-panel"><h2>Telemetry history</h2><p class="small">The latest normalized observations received by the backend.</p><div id="telemetry-history"><p class="small">Loading telemetry...</p></div></section>
+      <main id="sensors-view" class="view" hidden><div class="panel"><h2>Sensor token</h2><p class="small">Use this shared token for sensor management and local bootstrap actions.</p><input id="sensor-token" type="password" placeholder="Sensor token" autocomplete="off" /></div><div class="panel"><h2>Registered sensors</h2><p class="small">Monitor registration state and the last accepted heartbeat.</p><div id="sensor-list"><p class="small">Loading sensors...</p></div></div><div class="panel"><h2>Register a sensor</h2><form id="sensor-form" class="form"><input name="sensor_id" placeholder="Sensor ID" required /><input name="name" placeholder="Display name" required /><input name="sensor_type" placeholder="Type: network, device, remote" required /><button class="primary" type="submit">Register sensor</button></form><p id="sensor-form-status" class="small" role="status"></p></div><div class="panel"><h2>Issue sensor token</h2><p class="small">This token is for sensor telemetry only. It is shown once; store it in the sensor runtime environment.</p><form id="token-form" class="form"><input name="token_sensor_id" placeholder="Registered sensor ID" required /><input name="expires_at" type="datetime-local" required /><button class="primary" type="submit">Issue token</button></form><p id="token-form-status" class="small" role="status"></p><div id="token-result" class="token-result" hidden><strong>Copy this token now</strong><input id="issued-token" readonly aria-label="Issued sensor token" /></div></div><div class="panel"><h2>Revoke sensor tokens</h2><p class="small">Revoke every issued telemetry token for one registered sensor.</p><form id="revoke-form" class="form"><input name="revoke_sensor_id" placeholder="Registered sensor ID" required /><button class="danger" type="submit">Revoke tokens</button></form><p id="revoke-form-status" class="small" role="status"></p></div></main>
+    </div></section>
+  </div>
+  <script>
+    const themeSelect = document.getElementById('theme-select');
+    function applyTheme(theme) { document.documentElement.dataset.theme = theme === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : theme; themeSelect.value = theme; }
+    const savedTheme = localStorage.getItem('pqc-theme') || 'system'; applyTheme(savedTheme); themeSelect.addEventListener('change', () => { localStorage.setItem('pqc-theme', themeSelect.value); applyTheme(themeSelect.value); }); matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => { if (themeSelect.value === 'system') applyTheme('system'); });
+    async function loadDashboard() { const response = await fetch('/api/dashboard'); const data = await response.json(); const score = document.getElementById('overall-score'); score.textContent = `${data.overall_score}%`; score.className = `value ${data.overall_score >= 85 ? 'good' : data.overall_score >= 60 ? 'warn' : 'bad'}`; document.getElementById('assets-detected').textContent = data.assets_detected; document.getElementById('sensors-online').textContent = data.sensors_online; document.getElementById('high-risk').textContent = data.high_risk_count; document.getElementById('observations-collected').textContent = data.observations_collected; document.getElementById('recommended-actions').replaceChildren(...data.recommended_actions.map(item => { const li = document.createElement('li'); li.textContent = item; return li; })); document.getElementById('sensor-status').replaceChildren(...data.sensor_status.map(item => { const li = document.createElement('li'); li.textContent = item; return li; })); loadTelemetry(); }
+    async function loadTelemetry() { const response = await fetch('/api/telemetry/history'); const events = await response.json(); const node = document.getElementById('telemetry-history'); node.replaceChildren(); if (!events.length) { const empty = document.createElement('p'); empty.className = 'small'; empty.textContent = 'No telemetry received yet.'; node.append(empty); return; } events.forEach(event => { const row = document.createElement('div'); row.className = 'sensor-row'; [event.observation_type, event.sensor_id, event.evidence_confidence, event.collected_at].forEach((value, index) => { const item = document.createElement(index === 0 ? 'strong' : 'span'); item.className = index === 0 ? '' : 'small'; item.textContent = value || 'unknown'; row.append(item); }); node.append(row); }); }
+    async function loadSensors() { const response = await fetch('/api/sensors'); const sensors = await response.json(); const node = document.getElementById('sensor-list'); node.replaceChildren(); if (!sensors.length) { const empty = document.createElement('p'); empty.className = 'small'; empty.textContent = 'No sensors registered yet.'; node.append(empty); return; } sensors.forEach(sensor => { const row = document.createElement('div'); row.className = 'sensor-row'; ['name','sensor_id','sensor_type','status'].forEach((key, index) => { const item = document.createElement(index === 0 ? 'strong' : 'span'); if (index > 0) item.className = index === 3 ? `status ${sensor.status}` : 'small'; item.textContent = sensor[key]; row.append(item); }); node.append(row); }); }
+    document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => { document.querySelectorAll('[data-view]').forEach(item => item.classList.remove('active')); document.querySelectorAll('.view').forEach(view => { view.hidden = true; }); button.classList.add('active'); document.getElementById(button.dataset.view).hidden = false; if (button.dataset.view === 'sensors-view') loadSensors(); }));
+    document.getElementById('tree-toggle').addEventListener('click', event => { const expanded = event.currentTarget.getAttribute('aria-expanded') === 'true'; event.currentTarget.setAttribute('aria-expanded', String(!expanded)); event.currentTarget.classList.toggle('expanded', !expanded); document.getElementById('tree-children').hidden = expanded; });
+    document.getElementById('sidebar-toggle').addEventListener('click', event => { const collapsed = document.querySelector('.app-shell').classList.toggle('sidebar-collapsed'); event.currentTarget.textContent = collapsed ? '>' : '<'; });
+    document.getElementById('sensor-form').addEventListener('submit', async event => { event.preventDefault(); const form = new FormData(event.target); const response = await fetch('/api/sensors', { method:'POST', headers:{ Authorization:`Bearer ${document.getElementById('sensor-token').value}`, 'Content-Type':'application/json' }, body:JSON.stringify({ sensor_id:form.get('sensor_id'), name:form.get('name'), sensor_type:form.get('sensor_type') }) }); document.getElementById('sensor-form-status').textContent = response.ok ? 'Sensor registered.' : `Registration failed (${response.status}).`; if (response.ok) { event.target.reset(); loadSensors(); } });
+    document.getElementById('token-form').addEventListener('submit', async event => { event.preventDefault(); const form = new FormData(event.target); const response = await fetch('/api/sensor-tokens', { method:'POST', headers:{ Authorization:`Bearer ${document.getElementById('sensor-token').value}`, 'Content-Type':'application/json' }, body:JSON.stringify({ sensor_id:form.get('token_sensor_id'), expires_at:new Date(form.get('expires_at')).toISOString() }) }); const status = document.getElementById('token-form-status'); if (!response.ok) { status.textContent = `Token issuance failed (${response.status}).`; return; } const data = await response.json(); status.textContent = `Token issued through ${new Date(data.expires_at).toLocaleString()}.`; document.getElementById('issued-token').value = data.token; document.getElementById('token-result').hidden = false; event.target.reset(); });
+    document.getElementById('revoke-form').addEventListener('submit', async event => { event.preventDefault(); const form = new FormData(event.target); const sensorId = form.get('revoke_sensor_id'); const status = document.getElementById('revoke-form-status'); const token = document.getElementById('sensor-token').value; if (!token) { status.textContent = 'Enter the shared Sensor token first.'; return; } if (!confirm(`Revoke all tokens for ${sensorId}?`)) return; const response = await fetch(`/api/sensor-tokens/${encodeURIComponent(sensorId)}`, { method:'DELETE', headers:{ Authorization:`Bearer ${token}` } }); status.textContent = response.ok ? `Revoked tokens for ${sensorId}.` : `Token revocation failed (${response.status}).`; if (response.ok) event.target.reset(); });
+    loadDashboard();
+  </script>
+</body>
 </html>
