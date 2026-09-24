@@ -45,20 +45,26 @@ This document defines the security boundaries, trust assumptions, and implementa
 Every sensor should have a unique, scoped identity:
 
 - `sensor_id`
-- issued sensor API token or key identifier
+- optional future WireGuard peer identity
+- certificate serial and fingerprint after enrollment
 - environment tag
 - allowed role (network, device, remote, discovery)
-- expiration, rotation, and revocation metadata
+- certificate expiration, renewal, and lifecycle metadata
+- lifecycle state: `pending`, `active`, `deleted`, or `expired`
 
 ### Authentication
 
-Recommended model:
+Reviewed model:
 
-- HTTPS with TLS 1.3 for backend-sensor traffic
-- one unique, scoped API token or key per sensor and environment
-- short expiration, scheduled rotation, and immediate revocation on compromise
-- `Authorization: Bearer <token>` for sensor API requests
-- separate tokens for registration, telemetry ingestion, and administrative operations where practical
+- The current sensor-to-backend path uses TLS 1.3 directly.
+- WireGuard is deferred as an optional future network-isolation profile.
+- Initial enrollment uses server-authenticated TLS without mTLS.
+- Sensors generate private keys and CSRs locally; private keys never leave the sensor.
+- An online issuer CA signs approved CSRs and returns the end-entity certificate chain.
+- End-entity certificates default to 30 days and are configurable by deployment settings.
+- Renewal begins seven days before expiry.
+- A sensor whose certificate expires without renewal follows the new-sensor enrollment flow.
+- OCSP and CRL checks are intentionally out of scope; backend lifecycle state controls access.
 
 ### Authorization
 
@@ -68,6 +74,7 @@ The backend should enforce role-based access:
 - operator: run scans, review reports, inspect logs
 - auditor: read-only access to assessment history and evidence trails
 - sensor: ingest-only access to assigned telemetry routes
+- deleted or expired sensor: denied enrollment, renewal, and telemetry access
 
 ---
 
@@ -101,10 +108,13 @@ The platform should prioritize modern crypto posture and be designed to remain c
 
 Required practices:
 
-- TLS 1.3 only for external and internal API traffic in production
-- scoped API-token authentication on sensor-to-backend channels
-- constant-time token comparison and rate limiting on authentication failures
-- no shared global sensor token across environments
+- TLS 1.3 for sensor communication
+- optional future WireGuard before TLS connection establishment
+- backend server certificate validation during initial enrollment
+- issuer-signed end-entity certificates after enrollment
+- backend database state as the authoritative deletion/deny decision
+- configurable 30-day certificate lifetime and seven-day renewal window
+- no OCSP or CRL dependency
 - cryptographic metadata capture for analyzed services and endpoints
 - support for PQC-ready algorithm detection and reporting without depending on it for all legacy systems
 
@@ -200,7 +210,7 @@ Logs must remain tamper-evident enough for operational review and incident respo
 
 ### Mitigations
 
-- scoped tokens, rotation, revocation, and access control
+- certificate lifecycle state, renewal, deletion state, and access control; future WireGuard peer controls may be added
 - strict payload validation and schema enforcement
 - limited privilege remote execution
 - encrypted storage and secure key rotation
@@ -226,7 +236,10 @@ The project should not proceed past prototype stage without a pass on:
 
 The feature or service is only considered production-ready when all of the following are true:
 
-- sensor communication uses authenticated and encrypted transport
+- sensor communication uses TLS 1.3
+- WireGuard is not required in the current deployment profile
+- initial enrollment uses server-authenticated TLS without mTLS
+- post-enrollment certificate identity is checked against active sensor state
 - credentials are never stored in plaintext
 - uploads and ingestion endpoints reject invalid payloads
 - audit events exist for changes to assessments and configuration

@@ -11,8 +11,9 @@ The implementation target is an assessment and mitigation-progress product. It m
   - Initialize the Rust workspace (`Cargo.toml`) and directory structure. Standardize on the **Tokio** async framework.
   - Implement the shared domain models in `libs/common/`.
   - Set up the SQLite database schema and repository interfaces, including a **Data Retention & Pruning** subsystem for handling high-volume telemetry.
-  - Implement scoped API-token authentication for sensors, including secure enrollment, expiration, rotation, and revocation, while using TLS 1.3 for transport.
-  - Scaffold the backend API (`apps/backend/`) using REST over HTTPS (HTTP/1.1) to ensure proxy compatibility, with gRPC as an optional secondary protocol.
+  - Implement TLS 1.3 sensor transport; defer WireGuard as an optional future network-isolation profile.
+  - Implement server-authenticated TLS enrollment without mTLS, CSR submission, issuer signing, configurable 30-day certificates, seven-day renewal, expiry re-enrollment, and deleted-sensor denial.
+  - Scaffold the backend API (`apps/backend/`) with REST and optional gRPC inside the protected path.
   - Build the basic web dashboard shell (`apps/web/`).
   - Define readiness, scope, evidence-confidence, and mitigation-status enums in `libs/common/`.
 
@@ -31,7 +32,7 @@ The implementation target is an assessment and mitigation-progress product. It m
 
 - **Tasks:**
   - Implement the **Agent Management** subsystem in the backend to push configuration updates, polling intervals, and binary upgrades to supervised/unsupervised agents.
-  - Implement the **Device Agent** (`sensors/device/`) to poll the backend for updates, and securely push JSON payloads using HTTPS and scoped sensor API tokens.
+  - Implement the **Device Agent** (`sensors/device/`) to poll the backend for updates, and securely push JSON payloads using TLS 1.3 with certificate lifecycle checks.
   - Implement the CSV export/upload pipeline as a fallback supervised mode.
   - Implement the **Remote Agent** (`sensors/remote/`) to perform credentialed SSH logins.
 
@@ -57,5 +58,5 @@ The implementation target is an assessment and mitigation-progress product. It m
   - Verify the explicit success criteria: an operator can identify assets requiring remediation, assets already demonstrating readiness, and mitigation progress across assessment periods.
 
 ## Deployment Strategy
-- **Initial Pilot:** Deploy locally using SQLite, with backend and web UI on the same host. Sensors communicate via REST over HTTPS using scoped API tokens.
+- **Initial Pilot:** Deploy locally using SQLite, with backend and web UI on the same host. Sensors communicate using TLS 1.3; initial enrollment uses server-authenticated TLS without mTLS. WireGuard is optional and deferred.
 - **Enterprise Rollout:** Transition to PostgreSQL, distribute sensors across network segments, utilize the Agent Management system for fleets of device agents, and rely on the data retention policies to scale efficiently.

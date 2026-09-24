@@ -30,7 +30,8 @@ Asset
 Sensor
   ├── emits many Observation
   ├── belongs to a SensorType
-  └── has status and heartbeat metadata
+  ├── has status and heartbeat metadata
+  └── has certificate lifecycle metadata; an optional future WireGuard peer identity may be added
 
 Observation
   ├── belongs to an Asset
@@ -168,6 +169,12 @@ struct Sensor {
     metadata_json: JsonValue,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
+    lifecycle_state: String,
+    wireguard_peer_id: Option<String>,
+    certificate_serial: Option<String>,
+    certificate_fingerprint: Option<String>,
+    certificate_expires_at: Option<DateTime<Utc>>,
+    certificate_renewal_window_days: i32,
 }
 ```
 

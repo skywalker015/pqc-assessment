@@ -80,7 +80,10 @@ The project must explicitly verify:
 - secret files are not accidentally included in reports
 - audit log records include important actions without exposing secret material
 - unauthorized sensor requests are rejected
-- scoped API-token or API-key authentication is enforced where required
+- TLS 1.3 server authentication succeeds during enrollment
+- current sensor traffic works without WireGuard
+- certificate expiry and seven-day renewal behavior are verified
+- deleted sensors are denied enrollment, renewal, and telemetry
 
 ---
 

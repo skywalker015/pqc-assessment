@@ -111,7 +111,7 @@ Responsibilities:
 - Record user actions and agent activity in logs
 - Manage agent lifecycle (configuration updates, binary upgrades, health polling)
 
-The backend acts as the orchestrator and single source of truth for the application. For agent-to-backend communication, REST over HTTPS (HTTP/1.1) is used as the primary protocol to ensure compatibility with corporate proxies, with gRPC available as an optional secondary protocol. All data in transit must be secured with TLS 1.3 and modern approved algorithms. Sensors authenticate with scoped API tokens or API keys.
+The backend acts as the orchestrator and single source of truth for the application. The current sensor transport uses TLS 1.3 directly. WireGuard is deferred as an optional future network-isolation profile. Initial enrollment uses server-authenticated TLS without mTLS; after enrollment, the sensor presents an issuer-CA-signed end-entity certificate. Backend sensor lifecycle state remains authoritative and deleted or expired sensors are denied. gRPC is an optional secondary protocol over the same TLS 1.3 transport.
 
 ### 3.3 Shared library
 
@@ -406,8 +406,10 @@ This is important both for compliance and for operational troubleshooting.
 ## 10. Security and privacy requirements
 
 - **OWASP ASVS Compliance:** The platform must comply with the OWASP Application Security Verification Standard (ASVS) minimum Level 2, and enforce Level 3 controls where applicable (especially regarding cryptography and authentication).
-- Use PQC-ready encrypted transport (e.g., TLS 1.3 with ML-KEM/Kyber key exchange and ML-DSA/Dilithium certificates) for all agent-to-backend communication
-- Enforce strict sensor authentication via scoped API-token enrollment, expiration, rotation, and revocation
+- Use TLS 1.3 for the current sensor network path; WireGuard is optional and deferred
+- Use server-authenticated TLS without mTLS for initial enrollment, followed by issuer-CA-signed end-entity certificates
+- Enforce certificate lifetime, seven-day renewal, expiry re-enrollment, and backend deleted-state denial
+- Treat ML-KEM support as conditional on the selected production TLS implementation
 - Minimize credential storage; prefer temporary secret brokers or secure vaults
 - Restrict root-based operations to the supervised local mode
 - Redact sensitive values in user-facing logs

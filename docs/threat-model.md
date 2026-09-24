@@ -3,7 +3,7 @@
 This document outlines the security threat model for the platform using the STRIDE methodology.
 
 ## 1. Trust Boundaries
-- **Unsupervised Sensors -> Backend:** Untrusted network, secured by TLS and scoped API-token authentication.
+- **Unsupervised Sensors -> Backend:** TLS 1.3-protected network with certificate lifecycle authorization. WireGuard is an optional future defense-in-depth layer.
 - **Web UI -> Backend:** Untrusted network, secured by JWT and standard TLS.
 - **Backend -> Database:** Trusted network, secure local or private subnet connection.
 - **Remote Sensor -> Target Device:** Untrusted network, secured via SSH.
@@ -12,11 +12,11 @@ This document outlines the security threat model for the platform using the STRI
 
 ### Spoofing
 - **Threat:** A malicious actor impersonates a sensor to submit fake compliance data (e.g., claiming a vulnerable asset is PQC-ready).
-- **Mitigation:** Every sensor receives a unique, scoped, expiring API token or key. Ingestion endpoints enforce token validation, rate limits, rotation, and revocation.
+- **Mitigation:** Server-authenticated TLS enrollment, issuer-signed end-entity certificates, certificate expiry, and backend `deleted` state checks. Deleted sensors cannot renew or submit telemetry. WireGuard may be added later.
 
 ### Tampering
 - **Threat:** Network traffic between the sensor and backend is modified in transit.
-- **Mitigation:** All data in transit uses PQC-ready encrypted transport (TLS 1.3 with ML-KEM key exchange).
+- **Mitigation:** TLS 1.3 protects the application channel. WireGuard is not required in the current profile and may be added later. ML-KEM is enabled only after support is confirmed in the selected production TLS stack.
 
 ### Repudiation
 - **Threat:** An admin modifies the PQC rule engine or deletes a sensor, then denies doing so.

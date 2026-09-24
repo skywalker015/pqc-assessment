@@ -1,12 +1,26 @@
 # PQC Readiness Platform API Specification
 
-This document defines the primary REST API contracts between the frontend/sensors and the backend orchestrator. All endpoints are served over HTTPS. Sensor endpoints require scoped API-token authentication.
+This document defines the primary REST API contracts between the frontend/sensors and the backend orchestrator. The current sensor transport is TLS 1.3. WireGuard is deferred as an optional future deployment profile. Initial enrollment uses server-authenticated TLS without mTLS; subsequent certificate lifecycle and telemetry authorization are controlled by backend sensor state.
+
+## 0. Sensor enrollment and certificate lifecycle
+
+### `POST /api/v1/sensors/enrollment`
+The sensor submits a CSR over the TLS 1.3 connection during initial enrollment.
+
+Lifecycle rules:
+- The sensor generates and retains its private key.
+- The issuer CA signs only an approved CSR.
+- End-entity certificates default to 30 days and are configurable.
+- Renewal begins seven days before expiry.
+- Failed renewal followed by expiry starts the new-sensor enrollment flow.
+- Deleting a sensor marks it `deleted`; enrollment, renewal, and telemetry are denied.
+- OCSP and CRL checks are not part of this design.
 
 ## 1. Sensor Telemetry Ingestion
 
 ### `POST /api/v1/sensors/telemetry`
 **Description:** Accepts normalized telemetry from device, network, or remote sensors.
-**Authentication:** Sensor API token in the `Authorization: Bearer <token>` header
+**Authentication:** Initial enrollment uses configured bootstrap controls over server-authenticated TLS 1.3. After enrollment, sensor certificate lifecycle state authorizes telemetry.
 
 **Request Body:**
 ```json
@@ -32,7 +46,7 @@ This document defines the primary REST API contracts between the frontend/sensor
 
 ### `GET /api/v1/agents/config`
 **Description:** Allows an agent to poll for updated configurations (e.g., scan frequency, scopes).
-**Authentication:** Sensor API token in the `Authorization: Bearer <token>` header
+**Authentication:** TLS 1.3 with an active sensor certificate after enrollment.
 
 **Response:**
 ```json

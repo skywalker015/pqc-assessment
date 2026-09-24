@@ -1,6 +1,6 @@
-# ADR 0003: mTLS-based sensor identity and authenticated communication
+# ADR 0003: WireGuard and certificate-based sensor identity
 
-- Status: Accepted
+- Status: Superseded by revised enrollment design
 - Date: 2026-09-23
 
 ## Context
@@ -9,13 +9,13 @@ Sensors collect cryptographic evidence and remote configuration data. Without st
 
 ## Decision
 
-The project will require authenticated, encrypted communication between sensors and the backend using TLS 1.3 and mutual TLS (mTLS) wherever possible, with scoped certificates and short-lived credential patterns where needed.
+The revised design uses TLS 1.3 directly for current sensor transport. WireGuard is deferred as an optional future network-isolation profile. Initial enrollment uses server-authenticated TLS without mTLS. Sensors generate keys and CSRs locally; an issuer CA signs approved requests and issues configurable 30-day end-entity certificates. Renewal starts seven days before expiry. OCSP and CRL checks are not used; backend sensor lifecycle state controls access.
 
 ## Rationale
 
 - Prevents spoofing of sensor traffic and data injection
 - Gives the backend a clear identity model for trusted evidence sources
-- Supports secure, auditable sensor registration and rotation
+- Supports secure, auditable sensor registration and certificate renewal
 - Fits operational security expectations for enterprise environments
 
 ## Consequences
@@ -28,9 +28,9 @@ The project will require authenticated, encrypted communication between sensors 
 
 ### Negative
 
-- Requires PKI or certificate-management workflow
-- Adds operational complexity for certificate rotation and renewal
+- Requires PKI certificate-management workflow
+- Adds operational complexity for certificate renewal and expired-sensor re-enrollment
 
 ## Follow-up
 
-The security architecture and operations runbook must define certificate issuance, expiry monitoring, and rotation steps before production rollout.
+The security architecture and operations runbook define certificate issuance, expiry monitoring, renewal, deletion, and new-sensor re-enrollment before production rollout.

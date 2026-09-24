@@ -23,9 +23,10 @@ Before a backend or sensor deployment starts, verify:
 2. TLS certificate and key paths are present and valid
 3. the database is reachable and initialized
 4. the secret store is reachable and the runtime role is authorized
-5. sensor certificates are installed and not expired
-6. health endpoints can be reached
-7. the log sink and metrics namespace are configured
+5. sensor certificates are installed and not expired where enrollment is complete
+6. certificate renewal settings are correct: seven days by default
+7. health endpoints can be reached
+8. the log sink and metrics namespace is configured
 
 ---
 
@@ -95,12 +96,11 @@ Symptoms:
 Procedure:
 
 1. confirm the sensor host is online
-2. check certificate validity and trust chain
-3. verify backend connectivity and endpoint reachability
-4. inspect timestamp and payload errors in the audit log
-5. validate credentials or secret retrieval path
-6. restore service or rotate certificates if required
-7. document the incident and postmortem actions
+2. verify backend TLS certificate validity and trust chain
+3. inspect sensor certificate expiry and renewal status
+4. verify whether the sensor is marked `deleted` or `expired`
+5. if the certificate expired, start the new-sensor enrollment process
+6. document the incident and postmortem actions
 
 ### 6.2 Backend failure
 
@@ -121,17 +121,19 @@ Procedure:
 ### 6.3 Credential or certificate issue
 
 Symptoms:
-- mTLS handshake failure
+- TLS enrollment or certificate handshake failure
 - remote sensor cannot authenticate
 - secret retrieval failures
 
 Procedure:
 
-1. verify CA chain and certificate validity
-2. rotate expired or invalid credentials
-3. confirm runtime secret injection path
-4. validate new credentials on a non-production sensor before rollout
-5. update the audit record and notify affected operators
+1. verify backend reachability
+2. verify the CA chain and certificate validity
+3. check whether the sensor is deleted in backend state
+4. renew certificates inside the seven-day renewal window
+5. if expired, repeat new-sensor enrollment
+6. validate new credentials on a non-production sensor before rollout
+7. update the audit record and notify affected operators
 
 ---
 
@@ -205,7 +207,7 @@ No major change should be applied without:
 
 - sensor owner responsible for device or network sensor issues
 - backend operator responsible for service health and DB concerns
-- security reviewer responsible for mTLS, credentials, and secret issues
+- security reviewer responsible for WireGuard, TLS certificates, credentials, and secret issues
 - engineering lead responsible for architecture-level or rule-level changes
 
 ---

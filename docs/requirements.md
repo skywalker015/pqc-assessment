@@ -189,8 +189,11 @@ The data model must support SQLite for local/default use and PostgreSQL for ente
 ## 9. Non-functional requirements
 
 ### NFR-1: Security
-- all sensor ingestion endpoints must authenticate using a scoped, revocable API token or API key
-- data in transit must be encrypted with TLS 1.3 and modern safe defaults
+- sensor traffic must use TLS 1.3
+- WireGuard is optional and deferred for future network isolation
+- initial enrollment must use server-authenticated TLS without mTLS
+- post-enrollment sensor certificates must be issuer-signed, 30-day by default, and renewable seven days before expiry
+- deleted sensors must be denied by backend lifecycle state; OCSP and CRL are not required
 - credential material must be protected at rest and in memory
 
 ### NFR-2: Reliability
@@ -237,7 +240,7 @@ The MVP is complete when all of the following are true:
 
 - Local default: SQLite
 - Target enterprise upgrade: PostgreSQL
-- Sensor-to-backend communication: HTTPS with scoped API-token authentication and authenticated payloads
+- Sensor-to-backend communication: TLS 1.3 with certificate lifecycle authorization and authenticated payloads
 - Assessment execution: backend-driven, triggered after ingestion or on schedule
 - User interface: initially minimal operational and reporting surfaces; full browser app is a later milestone
 

@@ -161,7 +161,7 @@ Folder: `apps/backend/`
 ### Responsibility
 The backend is the orchestrator and system of record. It accepts data from sensors, stores normalized results, runs assessment logic, and produces operational reports.
 
-For real-time sensor telemetry, REST over HTTPS (HTTP/1.1) is used as the primary robust transport to ensure compatibility with corporate proxies and firewalls. Sensors authenticate with scoped API tokens or API keys sent in the `Authorization` header. Tokens must be stored securely, expire, rotate, and be revocable. gRPC is available as an optional secondary interface for low-latency network segments.
+For real-time sensor telemetry, traffic uses TLS 1.3 directly. WireGuard is deferred as an optional future network-isolation profile. Initial enrollment uses server-authenticated TLS without mTLS. Sensors generate keys and CSRs locally; after issuer approval, they use the resulting end-entity certificate. gRPC is available as an optional secondary interface over TLS 1.3. The backend denies deleted or expired sensors and does not depend on OCSP or CRL.
 
 ### Core modules
 - API layer (REST primary, gRPC secondary)
@@ -679,9 +679,14 @@ Backend -> Assessment Engine: compute risk
 - Redact secrets in logs and reports
 
 ### Network protections
-- Use PQC-ready encrypted transport (e.g., TLS 1.3 with ML-KEM/Kyber key exchange and ML-DSA/Dilithium certificates) for all backend communications
-- Enforce scoped API-token or API-key authentication for all sensor telemetry uploads
-- Implement secure enrollment, expiration, rotation, and revocation workflows for sensor tokens
+- Use TLS 1.3 for the current sensor network path; WireGuard is optional and deferred.
+- Initial enrollment uses server-authenticated TLS without mTLS.
+- Sensors generate private keys and CSRs locally; the issuer CA signs approved requests.
+- End-entity certificates default to 30 days and renew seven days before expiry.
+- Failed renewal followed by expiry starts the new-sensor enrollment flow.
+- Marking a sensor `deleted` denies enrollment, renewal, and telemetry access.
+- OCSP and CRL checks are intentionally out of scope; backend lifecycle state is authoritative.
+- ML-KEM is conditional on confirmed support in the selected TLS implementation.
 
 ### Auditability
 Every action should be captured in `audit_logs` with enough detail to reconstruct the event.

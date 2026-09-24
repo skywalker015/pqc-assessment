@@ -35,7 +35,7 @@ Use this for developer testing and small environments.
 This topology keeps the system simple:
 - one backend host
 - one local database
-- one or more sensors sending data over HTTPS
+- one or more sensors sending data over TLS 1.3
 
 ---
 
@@ -103,6 +103,11 @@ The backend should read secrets and runtime config from environment variables or
 - `SECRET_STORE_URL`
 - `SENSOR_TOKEN_STORE_URL`
 - `JWT_SECRET`
+- `TLS_SERVER_CERT_PATH`
+- `TLS_SERVER_KEY_PATH`
+- `TLS_TRUSTED_CA_PATH`
+- `SENSOR_CERT_LIFETIME_DAYS` (default `30`)
+- `SENSOR_CERT_RENEWAL_WINDOW_DAYS` (default `7`)
 
 Example local configuration:
 
@@ -128,10 +133,14 @@ SENSOR_TOKEN_STORE_URL=https://vault.internal/tokens
 
 ## 5. Security deployment requirements
 
-### API tokens for sensors
-- every sensor should authenticate with a unique, scoped API token or key
-- sensors should not share a single static token across environments
-- token expiration, rotation, and revocation should be automated or scheduled
+### Sensor enrollment and identity
+- use server-authenticated TLS 1.3 for initial enrollment without mTLS
+- sensors generate private keys and CSRs locally
+- the issuer CA signs approved CSRs and returns the certificate chain
+- end-entity certificates default to 30 days and renew seven days before expiry
+- expired certificates restart the new-sensor enrollment flow
+- deleted sensors are denied by backend state
+- OCSP and CRL checks are not used in this design
 
 ### Secrets handling
 - no plaintext credentials in the database
@@ -139,8 +148,10 @@ SENSOR_TOKEN_STORE_URL=https://vault.internal/tokens
 - redact secrets from logs and audit output
 
 ### Transport security
-- use HTTPS with modern TLS 1.3 defaults
-- prefer PQC-ready algorithms in upstream environments where supported
+- use TLS 1.3 for the sensor network path
+- WireGuard is an optional future deployment profile, not required now
+- validate the backend certificate during enrollment
+- enable ML-KEM only after confirming support in the selected TLS implementation
 
 ---
 
@@ -192,7 +203,7 @@ A deployment should be considered healthy only when:
 ### Phase 3: enterprise rollout
 - PostgreSQL backend
 - segmented sensor architecture
-- token rotation, revocation, and secret storage
+- certificate renewal, deleted-sensor denial, and secret storage
 - centralized reporting and operator controls
 
 ---
@@ -218,7 +229,8 @@ Recovery plan:
 
 Before deployment, ensure:
 - sensor API tokens are scoped, valid, and not expired
-- token authentication and revocation checks succeed
+- TLS 1.3 enrollment checks succeed; validate WireGuard only when the optional profile is enabled
+- certificate renewal and deleted-sensor denial checks succeed
 - database connection strings are correct
 - secret store is available
 - audit logging is enabled
